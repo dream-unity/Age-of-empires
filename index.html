@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#17110a">
+  <meta name="description" content="First Empire — an original classical-age real-time strategy game.">
+  <title>First Empire — Classical Age RTS</title>
+  <style>
+    html,body{height:100%;margin:0;background:#17110a;color:#ead9af;font-family:Georgia,serif}
+    body{display:grid;place-items:center;overflow:hidden}
+    .boot{width:min(86vw,620px);text-align:center;padding:32px}
+    h1{margin:0 0 12px;font-size:clamp(2rem,8vw,4.5rem);letter-spacing:.08em}
+    h1 span{color:#c7a258}
+    p{opacity:.8;line-height:1.55}
+    .bar{height:4px;background:#3a2c1b;margin:24px auto 0;overflow:hidden;max-width:340px}
+    .bar::after{content:"";display:block;height:100%;width:45%;background:#c7a258;animation:move 1s ease-in-out infinite alternate}
+    @keyframes move{to{transform:translateX(122%)}}
+    .error{white-space:pre-wrap;color:#ffcabd;font:14px/1.5 system-ui,sans-serif;text-align:left}
+  </style>
+</head>
+<body>
+  <main class="boot" id="boot">
+    <h1>FIRST <span>EMPIRE</span></h1>
+    <p>Raising the River Kingdom…</p>
+    <div class="bar" aria-hidden="true"></div>
+  </main>
+  <script>
+  (() => {
+    const fail = error => {
+      const boot = document.getElementById('boot');
+      boot.className = 'boot error';
+      boot.textContent = `The game could not be started in this browser.\n\nUse a current version of Chrome, Edge, Firefox, or Safari.\n\n${String(error)}`;
+    };
+    (async () => {
+      try {
+        if (!('DecompressionStream' in window)) throw new Error('This browser does not support the required decompression API.');
+        const response = await fetch('./first-empire.html.gz', { cache: 'no-cache' });
+        if (!response.ok) throw new Error(`Game package request failed (${response.status}).`);
+        const stream = response.body.pipeThrough(new DecompressionStream('gzip'));
+        const html = await new Response(stream).text();
+        const gameUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
+        location.replace(gameUrl);
+      } catch (error) {
+        fail(error);
+      }
+    })();
+  })();
+  </script>
+</body>
+</html>
