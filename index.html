@@ -17,6 +17,7 @@
     .bar::after{content:"";display:block;height:100%;width:45%;background:#c7a258;animation:move 1s ease-in-out infinite alternate}
     @keyframes move{to{transform:translateX(122%)}}
     .error{white-space:pre-wrap;color:#ffcabd;font:14px/1.5 system-ui,sans-serif;text-align:left}
+    .retry{margin-top:18px;padding:10px 18px;border:1px solid #c7a258;background:#24180d;color:#ead9af;font:600 14px system-ui,sans-serif;cursor:pointer}
   </style>
 </head>
 <body>
@@ -27,52 +28,83 @@
   </main>
   <script>
   (() => {
+    'use strict';
+
+    const packageVersion = '20260902.2';
     const chunkPaths = Array.from({ length: 7 }, (_, index) =>
       `./payload/game-${String(index).padStart(2, '0')}.b64`
     );
-    const expectedLength = 51424;
-    const expectedDigest = 'c639bdaf5cf68606e044c19a25ba064fa7ec1bc3ebca672aee1725c636fa6457';
+    const expectedBase64Length = 51424;
+    const expectedCompressedDigest = 'c639bdaf5cf68606e044c19a25ba064fa7ec1bc3ebca672aee1725c636fa6457';
     const status = document.getElementById('status');
 
     const fail = error => {
       const boot = document.getElementById('boot');
       boot.className = 'boot error';
-      boot.textContent = `The game could not be started in this browser.\n\nUse a current version of Chrome, Edge, Firefox, or Safari.\n\n${String(error)}`;
+      boot.replaceChildren();
+      const message = document.createElement('div');
+      message.textContent = `The game could not be started.\n\n${error instanceof Error ? error.message : String(error)}`;
+      const retry = document.createElement('button');
+      retry.className = 'retry';
+      retry.type = 'button';
+      retry.textContent = 'RETRY';
+      retry.addEventListener('click', () => location.reload());
+      boot.append(message, retry);
     };
 
-    const hex = buffer => Array.from(new Uint8Array(buffer), byte =>
+    const toHex = buffer => Array.from(new Uint8Array(buffer), byte =>
       byte.toString(16).padStart(2, '0')
     ).join('');
+
+    const loadChunk = async path => {
+      const url = new URL(path, document.baseURI);
+      url.searchParams.set('v', packageVersion);
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) {
+        throw new Error(`Game package request failed for ${path} (HTTP ${response.status}).`);
+      }
+      return response.text();
+    };
 
     (async () => {
       try {
         if (!('DecompressionStream' in window)) {
-          throw new Error('This browser does not support the required decompression API.');
+          throw new Error('This browser lacks the gzip decompression feature required to load the game. Use a current Chrome, Edge, Firefox, or Safari release.');
         }
 
         status.textContent = 'Loading the battlefield…';
-        const responses = await Promise.all(chunkPaths.map(path => fetch(path, { cache: 'no-cache' })));
-        const failed = responses.find(response => !response.ok);
-        if (failed) throw new Error(`Game package request failed (${failed.status}).`);
-
-        const base64 = (await Promise.all(responses.map(response => response.text())))
+        const base64 = (await Promise.all(chunkPaths.map(loadChunk)))
           .join('')
           .replace(/\s+/g, '');
-        if (base64.length !== expectedLength) throw new Error('The game package is incomplete.');
+
+        if (base64.length !== expectedBase64Length) {
+          throw new Error(`The game package is incomplete (${base64.length} of ${expectedBase64Length} encoded bytes).`);
+        }
 
         const binary = atob(base64);
         const compressed = Uint8Array.from(binary, character => character.charCodeAt(0));
-        if ('crypto' in window && crypto.subtle) {
-          const digest = hex(await crypto.subtle.digest('SHA-256', compressed));
-          if (digest !== expectedDigest) throw new Error('The game package failed its integrity check.');
+
+        if (globalThis.crypto?.subtle) {
+          const digest = toHex(await crypto.subtle.digest('SHA-256', compressed));
+          if (digest !== expectedCompressedDigest) {
+            throw new Error('The game package failed its integrity check.');
+          }
         }
 
         status.textContent = 'Founding the first settlement…';
-        const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));
-        const html = await new Response(stream).text();
-        const gameUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
-        location.replace(gameUrl);
+        const decompressed = new Response(compressed).body
+          .pipeThrough(new DecompressionStream('gzip'));
+        const html = await new Response(decompressed).text();
+
+        if (!/^\s*<!doctype html>/i.test(html) || !html.includes('id="startButton"')) {
+          throw new Error('The decoded game document is invalid.');
+        }
+
+        document.open();
+        document.write(html);
+        document.close();
       } catch (error) {
+        console.error('First Empire loader failed:', error);
         fail(error);
       }
     })();
