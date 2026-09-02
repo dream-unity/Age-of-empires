@@ -20,24 +20,55 @@
   </style>
 </head>
 <body>
-  <main class="boot" id="boot">
+  <main class="boot" id="boot" aria-live="polite">
     <h1>FIRST <span>EMPIRE</span></h1>
-    <p>Raising the River Kingdom…</p>
+    <p id="status">Raising the River Kingdom…</p>
     <div class="bar" aria-hidden="true"></div>
   </main>
   <script>
   (() => {
+    const chunkPaths = Array.from({ length: 7 }, (_, index) =>
+      `./payload/game-${String(index).padStart(2, '0')}.b64`
+    );
+    const expectedLength = 51424;
+    const expectedDigest = 'c639bdaf5cf68606e044c19a25ba064fa7ec1bc3ebca672aee1725c636fa6457';
+    const status = document.getElementById('status');
+
     const fail = error => {
       const boot = document.getElementById('boot');
       boot.className = 'boot error';
       boot.textContent = `The game could not be started in this browser.\n\nUse a current version of Chrome, Edge, Firefox, or Safari.\n\n${String(error)}`;
     };
+
+    const hex = buffer => Array.from(new Uint8Array(buffer), byte =>
+      byte.toString(16).padStart(2, '0')
+    ).join('');
+
     (async () => {
       try {
-        if (!('DecompressionStream' in window)) throw new Error('This browser does not support the required decompression API.');
-        const response = await fetch('./first-empire.html.gz', { cache: 'no-cache' });
-        if (!response.ok) throw new Error(`Game package request failed (${response.status}).`);
-        const stream = response.body.pipeThrough(new DecompressionStream('gzip'));
+        if (!('DecompressionStream' in window)) {
+          throw new Error('This browser does not support the required decompression API.');
+        }
+
+        status.textContent = 'Loading the battlefield…';
+        const responses = await Promise.all(chunkPaths.map(path => fetch(path, { cache: 'no-cache' })));
+        const failed = responses.find(response => !response.ok);
+        if (failed) throw new Error(`Game package request failed (${failed.status}).`);
+
+        const base64 = (await Promise.all(responses.map(response => response.text())))
+          .join('')
+          .replace(/\s+/g, '');
+        if (base64.length !== expectedLength) throw new Error('The game package is incomplete.');
+
+        const binary = atob(base64);
+        const compressed = Uint8Array.from(binary, character => character.charCodeAt(0));
+        if ('crypto' in window && crypto.subtle) {
+          const digest = hex(await crypto.subtle.digest('SHA-256', compressed));
+          if (digest !== expectedDigest) throw new Error('The game package failed its integrity check.');
+        }
+
+        status.textContent = 'Founding the first settlement…';
+        const stream = new Blob([compressed]).stream().pipeThrough(new DecompressionStream('gzip'));
         const html = await new Response(stream).text();
         const gameUrl = URL.createObjectURL(new Blob([html], { type: 'text/html' }));
         location.replace(gameUrl);
