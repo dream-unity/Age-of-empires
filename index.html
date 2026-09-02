@@ -30,12 +30,12 @@
   (() => {
     'use strict';
 
-    const packageVersion = '20260902.2';
-    const chunkPaths = Array.from({ length: 7 }, (_, index) =>
-      `./payload/game-${String(index).padStart(2, '0')}.b64`
+    const packageVersion = '20260902.3-touch';
+    const chunkPaths = Array.from({ length: 8 }, (_, index) =>
+      `./payload/touch-v2/game-${String(index).padStart(2, '0')}.bin`
     );
-    const expectedBase64Length = 51424;
-    const expectedCompressedDigest = 'c639bdaf5cf68606e044c19a25ba064fa7ec1bc3ebca672aee1725c636fa6457';
+    const expectedCompressedBytes = 42266;
+    const expectedCompressedDigest = 'd4da728dc141cafb571d28e6f92c844d4a709a5eef4a837352e7f0ff8a48a52e';
     const status = document.getElementById('status');
 
     const fail = error => {
@@ -63,7 +63,7 @@
       if (!response.ok) {
         throw new Error(`Game package request failed for ${path} (HTTP ${response.status}).`);
       }
-      return response.text();
+      return new Uint8Array(await response.arrayBuffer());
     };
 
     (async () => {
@@ -73,16 +73,18 @@
         }
 
         status.textContent = 'Loading the battlefield…';
-        const base64 = (await Promise.all(chunkPaths.map(loadChunk)))
-          .join('')
-          .replace(/\s+/g, '');
-
-        if (base64.length !== expectedBase64Length) {
-          throw new Error(`The game package is incomplete (${base64.length} of ${expectedBase64Length} encoded bytes).`);
+        const chunks = await Promise.all(chunkPaths.map(loadChunk));
+        const receivedBytes = chunks.reduce((total, chunk) => total + chunk.length, 0);
+        if (receivedBytes !== expectedCompressedBytes) {
+          throw new Error(`The game package is incomplete (${receivedBytes} of ${expectedCompressedBytes} bytes).`);
         }
 
-        const binary = atob(base64);
-        const compressed = Uint8Array.from(binary, character => character.charCodeAt(0));
+        const compressed = new Uint8Array(receivedBytes);
+        let offset = 0;
+        for (const chunk of chunks) {
+          compressed.set(chunk, offset);
+          offset += chunk.length;
+        }
 
         if (globalThis.crypto?.subtle) {
           const digest = toHex(await crypto.subtle.digest('SHA-256', compressed));

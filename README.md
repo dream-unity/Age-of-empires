@@ -38,6 +38,12 @@ Develop the River Kingdom from a three-villager settlement and destroy the Stepp
 
 | Control | Action |
 |---|---|
+| Tap a friendly unit or building | Select it |
+| Tap a target after selecting units | Move, gather, attack, continue building, or repair |
+| Double-tap a unit | Select nearby units of the same type |
+| One-finger drag | Pan the battlefield without issuing an order |
+| Two-finger pinch | Zoom and pan |
+| On-screen command buttons | Choose Gather, Build, Repair, Move, Attack, and other orders |
 | Left click | Select a unit, building, or resource |
 | Left drag | Box-select several units |
 | Right click | Move, gather, attack, construct, or repair |
@@ -49,12 +55,13 @@ Develop the River Kingdom from a three-villager settlement and destroy the Stepp
 | Escape | Cancel the current command |
 | Delete | Demolish a selected non-capital structure |
 
-Touch users can tap to select and move, use the command panel for explicit orders, and tap the minimap to reposition the camera.
+The complete match can be played without a mouse. On a touch laptop, tap a villager and then tap a tree, food source, stone outcrop, or gold vein. A selected villager also exposes a dedicated **Gather** button for an explicit two-step command. Foundations retain their builders until completion; tapping an unfinished foundation with selected villagers assigns them to continue it, and **Call Builder** can recover an unattended foundation.
 
 ## Repository layout
 
 - `index.html` — production launcher used by GitHub Pages
-- `payload/game-00.b64` through `payload/game-06.b64` — the exact compressed, self-contained game build
+- `payload/touch-v2/game-00.bin` through `payload/touch-v2/game-07.bin` — the exact compressed, touch-enabled self-contained game build
+- `payload/touch-v2/manifest.json` — compressed and materialized build checksums
 - `first-empire-preview.svg` — actual in-game preview image
 - `tools/materialize-game.mjs` — verifies and reconstructs the conventional single-file build
 - `tools/serve.mjs` — dependency-free local static server

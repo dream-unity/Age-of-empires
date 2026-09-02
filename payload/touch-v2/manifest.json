@@ -1,0 +1,51 @@
+{
+  "version": "20260902.3-touch",
+  "encoding": "binary gzip sections",
+  "chunkCount": 8,
+  "compressedBytes": 42266,
+  "compressedSha256": "d4da728dc141cafb571d28e6f92c844d4a709a5eef4a837352e7f0ff8a48a52e",
+  "decompressedBytes": 185062,
+  "decompressedSha256": "ce111b67c3f91dbb76b43649baf9c762027a5b872782849a7cd51adeb1aef5fd",
+  "files": [
+    {
+      "name": "game-00.bin",
+      "bytes": 6000,
+      "sha256": "72915d2388ac5dc2aaa91984854cfd69dbe63d6ce6a2badf5b66194eb2f7a5de"
+    },
+    {
+      "name": "game-01.bin",
+      "bytes": 6000,
+      "sha256": "74a3525aca9c2dc98830479d7eee0f04942f84aaf05fbfa9367e0c9a86c29494"
+    },
+    {
+      "name": "game-02.bin",
+      "bytes": 6000,
+      "sha256": "2477edd7a9c187651e0551987e1ffa262be48034656e4d1eddf893b97c6128c1"
+    },
+    {
+      "name": "game-03.bin",
+      "bytes": 6000,
+      "sha256": "11a81b869ba9f8006c45b408161114f2f82e453ced29eb867631f0423f76f552"
+    },
+    {
+      "name": "game-04.bin",
+      "bytes": 6000,
+      "sha256": "c7aa101d8e642d2447355b2efc421dca5ebb43f25b0a14f25e614c70074b6b67"
+    },
+    {
+      "name": "game-05.bin",
+      "bytes": 6000,
+      "sha256": "2e8b05854674e0d17518a8aeea0fffa654863a753c30c8c93f999639523dfa84"
+    },
+    {
+      "name": "game-06.bin",
+      "bytes": 6000,
+      "sha256": "fb77781b0d55fa6f51209598cb6079d49675e050f351342ef9e391da1d882cbc"
+    },
+    {
+      "name": "game-07.bin",
+      "bytes": 266,
+      "sha256": "007b5ecb80dc45e0003e0805727e0a9bbff829ba0e9093b5b584cd1b4e93cd53"
+    }
+  ]
+}

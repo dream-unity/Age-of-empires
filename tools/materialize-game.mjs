@@ -5,13 +5,15 @@ import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const CHUNK_COUNT = 7;
-const EXPECTED_BASE64_LENGTH = 51_424;
-const EXPECTED_COMPRESSED_SHA256 = 'c639bdaf5cf68606e044c19a25ba064fa7ec1bc3ebca672aee1725c636fa6457';
+const PAYLOAD_DIRECTORY = resolve(ROOT, 'payload', 'touch-v2');
+const CHUNK_COUNT = 8;
+const EXPECTED_COMPRESSED_BYTES = 42_266;
+const EXPECTED_COMPRESSED_SHA256 = 'd4da728dc141cafb571d28e6f92c844d4a709a5eef4a837352e7f0ff8a48a52e';
+const EXPECTED_HTML_SHA256 = 'ce111b67c3f91dbb76b43649baf9c762027a5b872782849a7cd51adeb1aef5fd';
 const VERIFY_ONLY = process.argv.includes('--verify-only');
 
 const chunkPaths = Array.from({ length: CHUNK_COUNT }, (_, index) =>
-  resolve(ROOT, 'payload', `game-${String(index).padStart(2, '0')}.b64`)
+  resolve(PAYLOAD_DIRECTORY, `game-${String(index).padStart(2, '0')}.bin`)
 );
 
 function sha256(buffer) {
@@ -19,31 +21,36 @@ function sha256(buffer) {
 }
 
 async function main() {
-  const parts = await Promise.all(chunkPaths.map((path) => readFile(path, 'utf8')));
-  const base64 = parts.join('').replace(/\s+/g, '');
+  const parts = await Promise.all(chunkPaths.map((path) => readFile(path)));
+  const compressed = Buffer.concat(parts);
 
-  if (base64.length !== EXPECTED_BASE64_LENGTH) {
+  if (compressed.length !== EXPECTED_COMPRESSED_BYTES) {
     throw new Error(
-      `Incomplete payload: expected ${EXPECTED_BASE64_LENGTH} base64 characters, received ${base64.length}.`
+      `Incomplete payload: expected ${EXPECTED_COMPRESSED_BYTES} bytes, received ${compressed.length}.`
+    );
+  }
+  const compressedDigest = sha256(compressed);
+
+  if (compressedDigest !== EXPECTED_COMPRESSED_SHA256) {
+    throw new Error(
+      `Compressed payload integrity failure: expected ${EXPECTED_COMPRESSED_SHA256}, received ${compressedDigest}.`
     );
   }
 
-  const compressed = Buffer.from(base64, 'base64');
-  const digest = sha256(compressed);
-
-  if (digest !== EXPECTED_COMPRESSED_SHA256) {
-    throw new Error(`Integrity failure: expected ${EXPECTED_COMPRESSED_SHA256}, received ${digest}.`);
-  }
-
   const html = gunzipSync(compressed);
+  const htmlDigest = sha256(html);
+  if (htmlDigest !== EXPECTED_HTML_SHA256) {
+    throw new Error(`Game build integrity failure: expected ${EXPECTED_HTML_SHA256}, received ${htmlDigest}.`);
+  }
   if (!html.subarray(0, 15).toString('utf8').toLowerCase().includes('<!doctype html>')) {
     throw new Error('The decompressed payload is not the expected HTML game build.');
   }
 
-  console.log(`Verified ${CHUNK_COUNT} payload sections.`);
+  console.log(`Verified ${CHUNK_COUNT} touch-build payload sections.`);
   console.log(`Compressed build: ${compressed.length.toLocaleString()} bytes.`);
-  console.log(`SHA-256: ${digest}`);
+  console.log(`Compressed SHA-256: ${compressedDigest}`);
   console.log(`Materialized game: ${html.length.toLocaleString()} bytes.`);
+  console.log(`Game SHA-256: ${htmlDigest}`);
 
   if (VERIFY_ONLY) return;
 
