@@ -6,9 +6,9 @@
 
 **[Launch First Empire](https://dream-unity.github.io/Age-of-empires/)**
 
-The game runs entirely in the browser. No installation, account, framework, package manager, or external game assets are required.
+The game runs entirely in a modern browser. It requires no account, framework, package manager, external game assets, or backend service.
 
-![First Empire gameplay preview](first-empire-preview.webp)
+![First Empire gameplay preview](first-empire-preview.svg)
 
 ## Objective
 
@@ -51,19 +51,38 @@ Develop the River Kingdom from a three-villager settlement and destroy the Stepp
 
 Touch users can tap to select and move, use the command panel for explicit orders, and tap the minimap to reposition the camera.
 
-## Repository files
+## Repository layout
 
-- `index.html` — lightweight browser launcher
-- `first-empire.html.gz` — compressed self-contained playable build
-- `source-code.zip` — complete modular and single-file source package
-- `first-empire-preview.webp` — in-game screenshot
-- `first-empire-title-screen.webp` — title-screen screenshot
-- `first-empire-gameplay-preview.mp4` — short gameplay recording
-- `.nojekyll` — serves the static build without Jekyll processing
+- `index.html` — production launcher used by GitHub Pages
+- `payload/game-00.b64` through `payload/game-06.b64` — the exact compressed, self-contained game build
+- `first-empire-preview.svg` — actual in-game preview image
+- `tools/materialize-game.mjs` — verifies and reconstructs the conventional single-file build
+- `tools/serve.mjs` — dependency-free local static server
+- `package.json` — verification, build, and local-play commands
+- `.nojekyll` — disables Jekyll processing for the static deployment
+- `LICENSE` — MIT licence for the original project code
 
-## Local play
+The production launcher checks the complete payload length and its SHA-256 digest before decompressing and starting the game. This prevents a partial or corrupted upload from silently loading.
 
-Open the repository's `index.html` through any local static HTTP server. The complete conventional source is available in `source-code.zip`.
+## Local development
+
+Node.js 18 or newer is recommended.
+
+```bash
+npm run verify
+npm run build
+npm run serve
+```
+
+- `npm run verify` validates every payload section and the final SHA-256 digest.
+- `npm run build` reconstructs `dist/index.html`, containing the complete game in one conventional HTML file.
+- `npm run serve` serves the repository at `http://localhost:8080` so the production loader can be tested locally.
+
+No npm dependencies are installed or required.
+
+## Browser compatibility
+
+The hosted loader uses the standard browser `DecompressionStream` API. Current Chrome, Edge, Firefox, and Safari releases support the required gzip decompression path.
 
 ## Intellectual-property boundary
 
